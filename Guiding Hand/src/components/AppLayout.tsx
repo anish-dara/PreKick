@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, FileText, Headphones, LayoutGrid, Mic, Send, Sparkles, Users2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { projects } from "@/data/mock";
+import { useDealProfiles } from "@/hooks/useDealProfiles";
+import type { ActiveDealContext } from "@/hooks/useDealProfiles";
+
+function projectDisplayName(profile: { customer?: { legalEntity?: string }; scope?: { summary?: string } }) {
+  const entity = profile.customer?.legalEntity ?? "Untitled customer";
+  const summary = profile.scope?.summary;
+  return summary ? `${entity} — ${summary}` : entity;
+}
 
 const nav = [
   { to: "/projects", label: "Projects", icon: LayoutGrid },
@@ -30,9 +38,28 @@ const nav = [
 
 export default function AppLayout() {
   const [rocketOpen, setRocketOpen] = useState(false);
-  const [activeProject, setActiveProject] = useState(projects.find((p) => p.active)!);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const location = useLocation();
   const currentLabel = nav.find((n) => location.pathname.startsWith(n.to))?.label ?? "Projects";
+
+  const { data: profiles } = useDealProfiles();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (profiles && profiles.length > 0 && !activeId) {
+      setActiveId(profiles[0].id);
+    }
+  }, [profiles, activeId]);
+
+  const activeProfile = profiles?.find((p) => p.id === activeId) ?? null;
+
+  const outletContext: ActiveDealContext = {
+    dealProfileId: activeId,
+    onProfileCreated: (id: string) => {
+      queryClient.invalidateQueries({ queryKey: ["deal_profiles"] });
+      setActiveId(id);
+    },
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -91,25 +118,30 @@ export default function AppLayout() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-auto md:ml-0 flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors max-w-[60vw] md:max-w-none">
-                <span className="h-2 w-2 rounded-full bg-success" />
-                <span className="truncate font-medium">{activeProject.name}</span>
+                <span className={cn("h-2 w-2 rounded-full", activeProfile ? "bg-success" : "bg-muted-foreground/40")} />
+                <span className="truncate font-medium">
+                  {activeProfile ? projectDisplayName(activeProfile) : "No project yet"}
+                </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-72">
               <DropdownMenuLabel>Switch project</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {projects.map((p) => (
+              {(profiles ?? []).length === 0 && (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  No deal profiles yet — extract one from a SOW on the Projects screen.
+                </div>
+              )}
+              {(profiles ?? []).map((p) => (
                 <DropdownMenuItem
                   key={p.id}
-                  disabled={!p.active}
-                  onClick={() => p.active && setActiveProject(p)}
+                  onClick={() => setActiveId(p.id)}
                   className="flex items-start gap-2"
                 >
-                  <span className={cn("mt-1.5 h-2 w-2 rounded-full", p.active ? "bg-success" : "bg-muted-foreground/40")} />
+                  <span className={cn("mt-1.5 h-2 w-2 rounded-full", p.id === activeId ? "bg-success" : "bg-muted-foreground/40")} />
                   <div className="flex-1">
-                    <div className="text-sm">{p.name}</div>
-                    {!p.active && <div className="text-[11px] text-muted-foreground">Archived</div>}
+                    <div className="text-sm">{projectDisplayName(p)}</div>
                   </div>
                 </DropdownMenuItem>
               ))}
@@ -126,7 +158,7 @@ export default function AppLayout() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          <Outlet context={outletContext} />
         </main>
       </div>
 
@@ -139,7 +171,7 @@ export default function AppLayout() {
             </div>
             <DialogTitle className="text-center">Project created in Rocketlane</DialogTitle>
             <DialogDescription className="text-center">
-              {activeProject.name} is now populated with everything PreKick gathered.
+              {activeProfile ? projectDisplayName(activeProfile) : "This project"} is now populated with everything PreKick gathered.
             </DialogDescription>
           </DialogHeader>
 

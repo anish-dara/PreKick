@@ -1,0 +1,117 @@
+{
+  "dealProfiles": [
+    {
+      "id": "northwind",
+      "customer": {
+        "legalEntity": "Northwind Retail GmbH",
+        "billingEntity": "Northwind Retail Holdings",
+        "address": "Munich, Germany",
+        "billingAddress": "Munich, Germany",
+        "taxId": null,
+        "industry": "Retail",
+        "sizeBand": "enterprise",
+        "region": "EU"
+      },
+      "commercial": {
+        "totalValue": 240000,
+        "currency": "EUR",
+        "paymentTerms": "Net 30",
+        "milestones": [],
+        "poRequired": true,
+        "poNumber": null,
+        "termLength": "12 months"
+      },
+      "scope": {
+        "summary": "CRM implementation and data migration",
+        "deliverables": [
+          "Salesforce Sales Cloud configuration & rollout",
+          "Legacy CRM data migration (cleanse + load)",
+          "Integration with order management platform",
+          "Admin training & runbook handoff"
+        ],
+        "exclusions": [],
+        "startDate": "2026-07-01",
+        "goLiveDate": "2026-09-15",
+        "milestones": [],
+        "dependencies": []
+      },
+      "stakeholders": [
+        { "id": "anya", "name": "Anya Müller", "email": "anya.muller@northwindretail.example", "role": "sponsor", "phone": null },
+        { "id": "tom", "name": "Tom Becker", "email": "tom.becker@northwindretail.example", "role": "it", "phone": null },
+        { "id": "priya", "name": "Priya Shah", "email": "priya.shah@northwindretail.example", "role": "projectLead", "phone": null },
+        { "id": "daniel", "name": "Daniel Roth", "email": "daniel.roth@northwindretail.example", "role": "finance", "phone": null }
+      ],
+      "compliance": {
+        "requiredDocs": ["orderForm", "billingSetup", "kickoffTemplate", "soc2Request", "securityQuestionnaire", "dpa", "gdprAddendum", "dataResidencyConfirmation"],
+        "flaggedClauses": [],
+        "dataResidency": "EU",
+        "securityLevel": "enterprise"
+      },
+      "meta": {
+        "fieldConfidence": { "customer.billingEntity": "low", "commercial.poNumber": "low" },
+        "fieldSource": {
+          "customer.billingEntity": "Two entities referenced in SOW",
+          "commercial.poNumber": "PO required but not yet provided"
+        },
+        "flaggedForReview": ["customer.billingEntity", "commercial.poNumber"]
+      },
+      "createdAt": "2026-06-18T00:00:00.000Z"
+    }
+  ],
+  "stakeholderCalls": [
+    {
+      "id": "call-anya",
+      "dealProfileId": "northwind",
+      "stakeholderId": "anya",
+      "role": "sponsor",
+      "status": "completed",
+      "transcript": "Agent: Thanks for taking the call, Anya. I'd like to confirm what success looks like for this CRM rollout.\nStakeholder: Success is adoption across all regions by Q3. We've been burned by half-finished tools before.\nAgent: Understood. And on timeline — what's the latest you'd want to be live?\nStakeholder: We need to be live within six weeks. The board has visibility on this.\nAgent: Noted. Any integrations you're particularly concerned about?\nStakeholder: No, the Salesforce integration should be simple. Tom can handle it.\nAgent: Got it. Last one — who has sign-off authority on scope changes?\nStakeholder: Priya as project lead, but I want to be in the loop.",
+      "extractedData": null,
+      "generatedDocId": null,
+      "createdAt": "2026-06-18T00:05:00.000Z"
+    },
+    {
+      "id": "call-tom",
+      "dealProfileId": "northwind",
+      "stakeholderId": "tom",
+      "role": "it",
+      "status": "completed",
+      "transcript": "Agent: Hi Tom — I'd like to walk through the technical landscape.\nStakeholder: Sure. Realistically this is a Q2 project — the integration alone is 8+ weeks.\nAgent: What's driving that estimate?\nStakeholder: Their API was a nightmare last time; this is the biggest risk on the project.\nAgent: Are there any environments or access we need to line up early?\nStakeholder: Sandbox access, an integration user, and time with our middleware team.\nAgent: Any concerns about the rollout itself?\nStakeholder: Honestly — I wish we'd been consulted earlier in the buying cycle.",
+      "extractedData": null,
+      "generatedDocId": null,
+      "createdAt": "2026-06-18T00:10:00.000Z"
+    },
+    {
+      "id": "call-priya",
+      "dealProfileId": "northwind",
+      "stakeholderId": "priya",
+      "role": "projectLead",
+      "status": "scheduled",
+      "transcript": null,
+      "extractedData": null,
+      "generatedDocId": null,
+      "createdAt": "2026-06-18T00:00:00.000Z"
+    },
+    {
+      "id": "call-daniel",
+      "dealProfileId": "northwind",
+      "stakeholderId": "daniel",
+      "role": "finance",
+      "status": "scheduled",
+      "transcript": null,
+      "extractedData": null,
+      "generatedDocId": null,
+      "createdAt": "2026-06-18T00:00:00.000Z"
+    }
+  ],
+  "generatedDocuments": [],
+  "conflictMaps": [
+    {
+      "id": "conflict-map-northwind-empty",
+      "dealProfileId": "northwind",
+      "conflicts": [],
+      "createdAt": "2026-06-18T00:00:00.000Z"
+    }
+  ],
+  "kickoffPackets": []
+}
