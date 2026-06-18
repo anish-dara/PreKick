@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PreKick design system — minimal, confident B2B SaaS.
+   Neutral warm-cool grays + deep indigo accent. All colors HSL. */
+
+@layer base {
+  :root {
+    --background: 220 20% 98%;
+    --foreground: 222 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 12%;
+
+    /* Deep indigo accent */
+    --primary: 232 60% 38%;
+    --primary-foreground: 220 20% 98%;
+
+    --secondary: 220 16% 94%;
+    --secondary-foreground: 222 25% 18%;
+
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 10% 44%;
+
+    --accent: 232 70% 96%;
+    --accent-foreground: 232 60% 30%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 55% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 90% 48%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 232 60% 38%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 222 28% 10%;
+    --sidebar-foreground: 220 14% 78%;
+    --sidebar-primary: 232 70% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 24% 16%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 22% 18%;
+    --sidebar-ring: 232 70% 60%;
+  }
+
+  .dark {
+    --background: 222 28% 8%;
+    --foreground: 220 14% 92%;
+    --card: 222 24% 11%;
+    --card-foreground: 220 14% 92%;
+    --popover: 222 24% 11%;
+    --popover-foreground: 220 14% 92%;
+    --primary: 232 70% 60%;
+    --primary-foreground: 222 28% 8%;
+    --secondary: 222 20% 16%;
+    --secondary-foreground: 220 14% 92%;
+    --muted: 222 20% 16%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 222 24% 18%;
+    --accent-foreground: 220 14% 92%;
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 20% 18%;
+    --input: 222 20% 18%;
+    --ring: 232 70% 60%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body { font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-background text-foreground; font-feature-settings: "cv02","cv03","cv04","cv11"; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+}
+
+@layer utilities {
+  .text-success { color: hsl(var(--success)); }
+  .bg-success { background-color: hsl(var(--success)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .bg-warning { background-color: hsl(var(--warning)); }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+  .animate-pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up { animation: fade-up 0.35s ease-out both; }
+}

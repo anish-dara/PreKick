@@ -1,0 +1,140 @@
+import { AlertTriangle, Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { agenda, executiveSummary, landmines, risks, stakeholderMap } from "@/data/mock";
+
+const toneStyles = {
+  positive: "bg-success/10 text-success border-success/30",
+  warning: "bg-warning/10 text-warning border-warning/30",
+  neutral: "bg-muted text-muted-foreground border-border",
+};
+
+export default function Packet() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12 space-y-8">
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <div className="text-xs uppercase tracking-wider text-primary font-semibold">Deliverable</div>
+          <h1 className="text-3xl font-semibold tracking-tight">Kickoff Packet</h1>
+          <p className="text-muted-foreground text-sm">Everything the team needs to walk into the kickoff confident.</p>
+        </div>
+        <Button className="gap-2">
+          <Download className="h-4 w-4" />
+          Export packet
+        </Button>
+      </header>
+
+      <article className="rounded-xl border border-border bg-card shadow-sm divide-y divide-border">
+        <Section title="Executive summary" eyebrow="01">
+          <p className="text-sm leading-relaxed text-foreground/90">{executiveSummary}</p>
+        </Section>
+
+        <Section title="Stakeholder map" eyebrow="02">
+          <ul className="space-y-2">
+            {stakeholderMap.map((s) => (
+              <li key={s.name} className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <div>
+                  <div className="font-medium text-sm">{s.name} <span className="text-muted-foreground font-normal">· {s.role}</span></div>
+                  <div className="text-sm text-foreground/80 mt-0.5">{s.disposition}</div>
+                </div>
+                <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider", toneStyles[s.tone])}>
+                  {s.tone === "positive" ? "Champion" : s.tone === "warning" ? "At risk" : "Aligned"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section title="Risk register" eyebrow="03">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left font-semibold px-4 py-2.5">Risk</th>
+                  <th className="text-left font-semibold px-4 py-2.5 w-28">Severity</th>
+                  <th className="text-left font-semibold px-4 py-2.5">Mitigation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {risks.map((r) => (
+                  <tr key={r.risk}>
+                    <td className="px-4 py-3 align-top">{r.risk}</td>
+                    <td className="px-4 py-3 align-top">
+                      <span className={cn(
+                        "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                        r.severity === "High" ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-warning/10 text-warning border-warning/30"
+                      )}>
+                        {r.severity}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-top text-foreground/85">{r.mitigation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        <Section title="Hidden landmines" eyebrow="04" subtitle="PM eyes only">
+          <div className="rounded-lg border border-warning/40 bg-warning/5 p-4 space-y-2.5">
+            <div className="flex items-center gap-2 text-warning font-semibold text-xs uppercase tracking-wider">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Confidential
+            </div>
+            <ul className="space-y-2">
+              {landmines.map((l) => (
+                <li key={l} className="text-sm flex gap-2 leading-relaxed">
+                  <span className="text-warning shrink-0">▸</span>
+                  <span>{l}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+
+        <Section title="Suggested kickoff agenda" eyebrow="05">
+          <ol className="space-y-2">
+            {agenda.map((a, i) => (
+              <li key={a} className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3">
+                <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="text-sm">{a}</span>
+              </li>
+            ))}
+          </ol>
+        </Section>
+      </article>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  eyebrow,
+  subtitle,
+  children,
+}: {
+  title: string;
+  eyebrow: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="p-5 md:p-8">
+      <div className="flex items-baseline justify-between mb-4">
+        <div className="flex items-baseline gap-3">
+          <span className="text-[11px] font-mono text-muted-foreground">{eyebrow}</span>
+          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            {title}
+          </h2>
+        </div>
+        {subtitle && (
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{subtitle}</span>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
