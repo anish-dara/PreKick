@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Lightbulb, Loader2, Quote, ShieldAlert, Sparkles, Users2 } from "lucide-react";
+import { ArrowRight, History, Lightbulb, Loader2, Quote, ShieldAlert, Sparkles, Users2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { apiGet, apiPost } from "@/lib/api";
 import { useDealProfile } from "@/hooks/useDealProfiles";
 import type { ActiveDealContext } from "@/hooks/useDealProfiles";
-import type { ConflictCategory, ConflictMapRow, ConflictRow } from "@/lib/types";
+import type { ConflictCategory, ConflictMapRow, ConflictRow, ContinuityCard, ContinuityStatus } from "@/lib/types";
 
 const CATEGORY_LABELS: Record<ConflictCategory, string> = {
   timeline: "Timeline",
@@ -49,6 +49,7 @@ export default function ConflictMap() {
   }, [profile]);
 
   const conflicts = conflictMap?.conflicts ?? [];
+  const continuityCards = conflictMap?.continuityCards ?? [];
   const highSev = conflicts.filter((c) => c.severity === "high").length;
   const stakeholdersInvolved = new Set(conflicts.flatMap((c) => [c.stakeholderA, c.stakeholderB])).size;
 
@@ -88,10 +89,31 @@ export default function ConflictMap() {
         </div>
       )}
 
-      {dealProfileId && !isLoading && conflicts.length === 0 && (
+      {dealProfileId && !isLoading && conflicts.length === 0 && continuityCards.length === 0 && (
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
           No conflict map yet. Complete at least two stakeholder calls, then click "Generate Conflict Map".
         </div>
+      )}
+
+      {continuityCards.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+              <History className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-display text-xl tracking-tight">Continuing from last time</h2>
+              <p className="text-xs text-muted-foreground">
+                Returning stakeholders — what they raised before, and where it stands now. Recalled from HydraDB.
+              </p>
+            </div>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-5">
+            {continuityCards.map((card, i) => (
+              <ContinuityCardView key={i} card={card} index={i} />
+            ))}
+          </div>
+        </section>
       )}
 
       {conflicts.length > 0 && (
@@ -122,6 +144,53 @@ function Stat({ value, label, accent, icon }: { value: string; label: string; ac
         {label}
       </div>
     </div>
+  );
+}
+
+const CONTINUITY_STATUS_STYLES: Record<ContinuityStatus, { label: string; className: string }> = {
+  resolved: { label: "Resolved", className: "bg-success/10 text-success border-success/30" },
+  persisting: { label: "Persisting", className: "bg-warning/10 text-warning border-warning/30" },
+  escalated: { label: "Escalated", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  new: { label: "New", className: "bg-primary/10 text-primary border-primary/30" },
+};
+
+function ContinuityCardView({ card, index }: { card: ContinuityCard; index: number }) {
+  const status = CONTINUITY_STATUS_STYLES[card.status] ?? CONTINUITY_STATUS_STYLES.persisting;
+  return (
+    <article
+      className="group relative rounded-xl border border-border bg-card shadow-sm overflow-hidden animate-fade-up"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/40 via-primary/20 to-transparent" />
+      <div className="p-5 md:p-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="font-semibold">{card.stakeholder}</div>
+          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider", status.className)}>
+            {status.label}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg p-4 border bg-muted/40 border-border relative">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Last time</div>
+            <p className="text-sm leading-relaxed">{card.priorQuote ? `"${card.priorQuote}"` : "—"}</p>
+          </div>
+          <div className="rounded-lg p-4 border bg-primary/5 border-primary/20 relative">
+            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5">Now</div>
+            <p className="text-sm leading-relaxed">{card.currentQuote ? `"${card.currentQuote}"` : "Not raised on this call"}</p>
+          </div>
+        </div>
+
+        {card.notes && (
+          <div className="rounded-lg bg-accent/60 border border-primary/10 p-3.5 flex items-start gap-3">
+            <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+              <Lightbulb className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <p className="text-sm mt-0.5 text-foreground/90">{card.notes}</p>
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 

@@ -113,8 +113,18 @@ class Store {
     );
   }
 
-  insertConflictMap(dealProfileId: string, conflicts: ConflictMap["conflicts"]): ConflictMap {
-    const row: ConflictMap = { id: randomUUID(), dealProfileId, conflicts, createdAt: new Date().toISOString() };
+  insertConflictMap(
+    dealProfileId: string,
+    conflicts: ConflictMap["conflicts"],
+    continuityCards: ConflictMap["continuityCards"] = [],
+  ): ConflictMap {
+    const row: ConflictMap = {
+      id: randomUUID(),
+      dealProfileId,
+      conflicts,
+      continuityCards,
+      createdAt: new Date().toISOString(),
+    };
     this.conflictMaps.push(row);
     return row;
   }

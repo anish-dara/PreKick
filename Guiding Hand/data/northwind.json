@@ -22,7 +22,7 @@
         "termLength": "12 months"
       },
       "scope": {
-        "summary": "CRM implementation and data migration",
+        "summary": "Phase 2 CRM rollout — second engagement",
         "deliverables": [
           "Salesforce Sales Cloud configuration & rollout",
           "Legacy CRM data migration (cleanse + load)",
@@ -86,11 +86,11 @@
       "dealProfileId": "northwind",
       "stakeholderId": "priya",
       "role": "projectLead",
-      "status": "scheduled",
-      "transcript": null,
+      "status": "completed",
+      "transcript": "Agent: Thanks Priya. As project lead, what's top of mind for this rollout?\nStakeholder: Scope control. Last time changes came in sideways from the sponsor and I found out after the fact. This time everything routes through me.\nAgent: Understood. How do you see the timeline?\nStakeholder: Six weeks is not realistic if we include the integration and proper testing. I'd say ten to twelve weeks to do it right.\nAgent: Who signs off on scope changes?\nStakeholder: I do, as project lead. Anya wants visibility, which is fine, but approval sits with me.\nAgent: Any resourcing concerns?\nStakeholder: I need Tom's integration team protected — if they get pulled onto other work, we slip.",
       "extractedData": null,
       "generatedDocId": null,
-      "createdAt": "2026-06-18T00:00:00.000Z"
+      "createdAt": "2026-06-18T00:15:00.000Z"
     },
     {
       "id": "call-daniel",
@@ -110,6 +110,7 @@
       "id": "conflict-map-northwind-empty",
       "dealProfileId": "northwind",
       "conflicts": [],
+      "continuityCards": [],
       "createdAt": "2026-06-18T00:00:00.000Z"
     }
   ],

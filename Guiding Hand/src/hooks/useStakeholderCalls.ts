@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
-import type { GeneratedDocumentRow, StakeholderCallRow } from "@/lib/types";
+import type { GeneratedDocumentRow, StakeholderCallRow, StakeholderHistoryResponse } from "@/lib/types";
 
 export function useStakeholderCalls(dealProfileId: string | null, opts?: { refetchInterval?: number }) {
   return useQuery({
@@ -8,6 +8,22 @@ export function useStakeholderCalls(dealProfileId: string | null, opts?: { refet
     queryFn: () => apiGet<StakeholderCallRow[]>(`/api/deal-profiles/${dealProfileId}/calls`),
     enabled: !!dealProfileId,
     refetchInterval: opts?.refetchInterval,
+  });
+}
+
+export function useStakeholderHistory(
+  name: string | null,
+  email: string | null,
+  opts?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ["stakeholder_history", name, email],
+    queryFn: () => {
+      const params = new URLSearchParams({ name: name ?? "" });
+      if (email) params.set("email", email);
+      return apiGet<StakeholderHistoryResponse>(`/api/stakeholder-history?${params.toString()}`);
+    },
+    enabled: !!name && (opts?.enabled ?? true),
   });
 }
 

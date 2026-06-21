@@ -77,6 +77,18 @@ export type GeneratedDocumentRow = {
   createdAt: string;
 };
 
+export type StakeholderMemory = {
+  text: string;
+  metadata?: Record<string, unknown>;
+  additionalMetadata?: Record<string, unknown>;
+};
+
+export type StakeholderHistoryResponse = {
+  subTenantId: string;
+  count: number;
+  interviews: StakeholderMemory[];
+};
+
 export type ConflictCategory = "timeline" | "successCriteria" | "authority" | "assumption" | "political";
 
 export type ConflictRow = {
@@ -89,10 +101,21 @@ export type ConflictRow = {
   suggestedResolution: string;
 };
 
+export type ContinuityStatus = "resolved" | "persisting" | "escalated" | "new";
+
+export type ContinuityCard = {
+  stakeholder: string;
+  priorQuote: string;
+  currentQuote: string;
+  status: ContinuityStatus;
+  notes: string;
+};
+
 export type ConflictMapRow = {
   id: string;
   dealProfileId: string;
   conflicts: ConflictRow[];
+  continuityCards?: ContinuityCard[];
   createdAt: string;
 };
 

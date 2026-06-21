@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { CheckCircle2, FileText, Loader2, PhoneCall, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { CheckCircle2, ChevronDown, ChevronUp, Database, FileText, Loader2, PhoneCall, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -9,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiPost } from "@/lib/api";
 import { useDealProfile } from "@/hooks/useDealProfiles";
-import { useGeneratedDocument, useStakeholderCalls } from "@/hooks/useStakeholderCalls";
+import { useGeneratedDocument, useStakeholderCalls, useStakeholderHistory } from "@/hooks/useStakeholderCalls";
 import type { ActiveDealContext } from "@/hooks/useDealProfiles";
-import type { CallStatusDb, DealStakeholder, StakeholderCallRow } from "@/lib/types";
+import type { CallStatusDb, DealStakeholder, StakeholderCallRow, StakeholderMemory } from "@/lib/types";
 
 const ROLE_LABELS: Record<string, string> = {
   sponsor: "Exec Sponsor",
@@ -62,9 +64,15 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
 export default function Stakeholders() {
   const { dealProfileId } = useOutletContext<ActiveDealContext>();
   const { data: profile } = useDealProfile(dealProfileId);
+  const queryClient = useQueryClient();
 
+  const [syncing, setSyncing] = useState(false);
   const [activeStakeholderId, setActiveStakeholderId] = useState<string | null>(null);
-  const [liveCall, setLiveCall] = useState<{ callId: string; signedUrl: string } | null>(null);
+  const [liveCall, setLiveCall] = useState<{
+    callId: string;
+    signedUrl: string;
+    dynamicVariables: Record<string, string>;
+  } | null>(null);
   const [connecting, setConnecting] = useState(false);
 
   const hasInProgress = !!liveCall;
@@ -94,11 +102,19 @@ export default function Stakeholders() {
     setActiveStakeholderId(stakeholder.id);
     setConnecting(true);
     try {
-      const data = await apiPost<{ callId: string; signedUrl: string }>("/api/start-call", {
+      const data = await apiPost<{
+        callId: string;
+        signedUrl: string;
+        dynamicVariables: Record<string, string>;
+      }>("/api/start-call", {
         dealProfileId,
         stakeholderId: stakeholder.id,
       });
-      setLiveCall({ callId: data.callId, signedUrl: data.signedUrl });
+      setLiveCall({
+        callId: data.callId,
+        signedUrl: data.signedUrl,
+        dynamicVariables: data.dynamicVariables,
+      });
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Could not start the call");
@@ -111,6 +127,25 @@ export default function Stakeholders() {
   const viewTranscript = (stakeholder: DealStakeholder) => {
     setLiveCall(null);
     setActiveStakeholderId(stakeholder.id);
+  };
+
+  const syncFromElevenLabs = async () => {
+    if (!dealProfileId) return;
+    setSyncing(true);
+    try {
+      const data = await apiPost<{ scanned: number; matched: number; imported: number }>("/api/sync-calls", {
+        dealProfileId,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["stakeholder_calls", dealProfileId] });
+      await queryClient.invalidateQueries({ queryKey: ["stakeholder_history"] });
+      toast.success(
+        `Synced from ElevenLabs — ${data.matched} transcript${data.matched === 1 ? "" : "s"} pulled, ${data.imported} new stored in memory.`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const close = () => {
@@ -139,6 +174,17 @@ export default function Stakeholders() {
             <StatCard label="Stakeholders" value={stakeholders.length} />
             <StatCard label="Calls completed" value={completed} accent />
             <StatCard label="Scheduled" value={stakeholders.length - completed} />
+          </div>
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-muted-foreground max-w-md">
+              Phone &amp; browser calls are recorded in ElevenLabs. Pull their transcripts in — each one is stored on
+              the page and remembered in HydraDB for next time.
+            </p>
+            <Button variant="outline" size="sm" onClick={syncFromElevenLabs} disabled={syncing} className="gap-1.5 shrink-0">
+              {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {syncing ? "Syncing…" : "Sync calls from ElevenLabs"}
+            </Button>
           </div>
 
           <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -232,7 +278,7 @@ function CallPanel({
 }: {
   stakeholder: DealStakeholder | null;
   call: StakeholderCallRow | null;
-  liveCall: { callId: string; signedUrl: string } | null;
+  liveCall: { callId: string; signedUrl: string; dynamicVariables: Record<string, string> } | null;
   dealProfileId: string | null;
   onClose: () => void;
 }) {
@@ -282,6 +328,8 @@ function CallPanel({
               </div>
             </div>
 
+            {!showWidget && <MemorySection stakeholder={stakeholder} />}
+
             {showWidget && liveCall && (
               <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-muted/20">
                 <p className="text-xs text-muted-foreground">
@@ -290,12 +338,7 @@ function CallPanel({
                 </p>
                 <elevenlabs-convai
                   signed-url={liveCall.signedUrl}
-                  dynamic-variables={JSON.stringify({
-                    stakeholder_id: stakeholder.id,
-                    stakeholder_name: stakeholder.name,
-                    role: stakeholder.role,
-                    deal_profile_id: dealProfileId ?? "",
-                  })}
+                  dynamic-variables={JSON.stringify(liveCall.dynamicVariables)}
                 />
               </div>
             )}
@@ -366,5 +409,82 @@ function CallPanel({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function MemorySection({ stakeholder }: { stakeholder: DealStakeholder }) {
+  const { data, isLoading } = useStakeholderHistory(stakeholder.name, stakeholder.email);
+  const [open, setOpen] = useState(true);
+  const count = data?.count ?? 0;
+
+  return (
+    <div className="border-b border-border bg-primary/[0.03]">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-3 hover:bg-primary/[0.04] transition-colors"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <Database className="h-4 w-4 text-primary" />
+          Memory · {count} past conversation{count === 1 ? "" : "s"}
+          <span className="text-[11px] font-normal text-muted-foreground">recalled from HydraDB</span>
+        </span>
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+      {open && (
+        <div className="px-5 pb-4 max-h-60 overflow-y-auto space-y-2">
+          {isLoading && <div className="text-xs text-muted-foreground">Recalling memory…</div>}
+          {!isLoading && count === 0 && (
+            <div className="text-xs text-muted-foreground">
+              No prior conversations stored yet — the first completed call with {stakeholder.name.split(" ")[0]} will be
+              remembered here, and used to brief the agent next time.
+            </div>
+          )}
+          {(data?.interviews ?? []).map((iv, i) => (
+            <MemoryItem key={i} item={iv} index={i} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MemoryItem({ item, index }: { item: StakeholderMemory; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const am = (item.additionalMetadata ?? {}) as Record<string, unknown>;
+  const rawDate = am.date ? String(am.date) : null;
+  const date = rawDate ? new Date(rawDate) : null;
+  const concerns = Array.isArray(am.concerns) ? (am.concerns as string[]) : [];
+  const customer = am.customer ? String(am.customer) : null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs font-medium">
+          {date && !Number.isNaN(date.getTime()) ? format(date, "MMM d, yyyy") : `Conversation ${index + 1}`}
+          {customer ? <span className="text-muted-foreground font-normal"> · {customer}</span> : null}
+        </div>
+        <button onClick={() => setExpanded((e) => !e)} className="text-[11px] text-primary font-medium shrink-0">
+          {expanded ? "Hide transcript" : "View transcript"}
+        </button>
+      </div>
+      {concerns.length > 0 && (
+        <ul className="mt-1.5 flex flex-wrap gap-1">
+          {concerns.map((c, i) => (
+            <li key={i} className="text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+              {c}
+            </li>
+          ))}
+        </ul>
+      )}
+      {expanded && (
+        <pre className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-muted-foreground font-sans">
+          {item.text}
+        </pre>
+      )}
+    </div>
   );
 }

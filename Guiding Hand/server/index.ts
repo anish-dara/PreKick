@@ -4,7 +4,19 @@ import cors from "cors";
 import { store } from "./store.ts";
 import { claudeJSON } from "./anthropic.ts";
 import { computeRequiredDocs } from "./matrix.ts";
-import type { Conflict, DealProfile, GeneratedDocument, KickoffPacket, StakeholderCall } from "./types.ts";
+import type { Conflict, ContinuityCard, DealProfile, GeneratedDocument, KickoffPacket, StakeholderCall } from "./types.ts";
+import {
+  ensureTenant,
+  lookupHistory,
+  writeInterview,
+  formatPriorHistory,
+  stakeholderKey,
+  memoryLog,
+  recentMemoryLog,
+  logMemory,
+  type MemoryLogEvent,
+} from "./hydra.ts";
+import { listConversations, getConversation, turnsToTranscript } from "./elevenlabs.ts";
 
 const PORT = Number(process.env.PORT) || 8787;
 
@@ -20,6 +32,177 @@ function asyncHandler(fn: (req: Request, res: Response) => Promise<void>) {
     });
   };
 }
+
+// ---------------------------------------------------------------------------
+// Call context helpers — the ElevenLabs agent prompt references these exact
+// dynamic-variable names: stakeholder_name, stakeholder_role, project_name,
+// prior_history. We also pass stakeholder_id / deal_profile_id / has_prior_history
+// (used by our webhook + sync matching, harmless to the agent).
+// ---------------------------------------------------------------------------
+
+const ROLE_LABELS: Record<string, string> = {
+  sponsor: "Executive Sponsor",
+  projectLead: "Project Lead",
+  it: "IT Lead",
+  finance: "Finance Contact",
+  champion: "Champion",
+  procurement: "Procurement",
+};
+
+function roleLabel(role: string): string {
+  return ROLE_LABELS[role] ?? role;
+}
+
+function projectNameFor(profile: DealProfile | null): string {
+  if (!profile) return "this engagement";
+  const parts = [profile.customer?.legalEntity, profile.scope?.summary].filter(Boolean) as string[];
+  return parts.join(" — ") || "this engagement";
+}
+
+/**
+ * Recall the person's HydraDB history and build the full dynamic-variable set the
+ * agent expects. Single source of truth for both browser (start-call) and phone
+ * (outbound-call) so the agent always gets identical, complete context.
+ */
+async function buildCallDynamicVariables(args: {
+  name: string;
+  email?: string | null;
+  role: string;
+  projectName: string;
+  dealProfileId: string;
+  stakeholderId: string;
+}): Promise<{ vars: Record<string, string>; priorCount: number }> {
+  const priorChunks = await lookupHistory({ name: args.name, email: args.email });
+  const priorHistory = formatPriorHistory(priorChunks);
+
+  // Top concern from the most recent prior interview — the agent's first_message
+  // uses {{prior_top_concern}} for its memory opener. MUST be non-empty whenever
+  // referenced or ElevenLabs fails to start the conversation (call drops silently).
+  let priorTopConcern = "";
+  for (const ch of priorChunks) {
+    const concerns = (ch.additionalMetadata as { concerns?: unknown } | undefined)?.concerns;
+    if (Array.isArray(concerns) && concerns.length > 0) {
+      priorTopConcern = String(concerns[0]).replace(/\s*\(.*$/, "").trim();
+      break;
+    }
+  }
+  const hasPrior = priorChunks.length > 0;
+  if (!priorTopConcern) {
+    priorTopConcern = hasPrior ? "the items we discussed" : "getting this project set up smoothly";
+  }
+
+  return {
+    priorCount: priorChunks.length,
+    vars: {
+      stakeholder_id: args.stakeholderId,
+      stakeholder_name: args.name,
+      stakeholder_role: roleLabel(args.role),
+      role: args.role,
+      project_name: args.projectName,
+      deal_profile_id: args.dealProfileId,
+      prior_history: priorHistory,
+      prior_top_concern: priorTopConcern,
+      has_prior_history: hasPrior ? "true" : "false",
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Concern extraction (shared by the memory-write path + standalone endpoint)
+// ---------------------------------------------------------------------------
+
+const CONCERNS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["concerns"],
+  properties: { concerns: { type: "array", items: { type: "string" } } },
+};
+
+const CONCERNS_SYSTEM = `You read one stakeholder call transcript and list the specific, concrete concerns or
+risks the stakeholder raised — each as a short noun phrase (e.g. "Salesforce integration complexity",
+"unrealistic timeline", "not consulted at scope time"). Only list things actually stated. Return an empty
+array if none.`;
+
+async function extractConcerns(transcript: string): Promise<string[]> {
+  if (!transcript.trim()) return [];
+  const out = await claudeJSON<{ concerns: string[] }>({
+    system: CONCERNS_SYSTEM,
+    user: `Transcript:\n${transcript}`,
+    schema: CONCERNS_SCHEMA,
+    effort: "low",
+    maxTokens: 512,
+  });
+  return out.concerns ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// HydraDB memory layer — recall (read) + interview persistence (write)
+// ---------------------------------------------------------------------------
+
+// (a) Autonomous recall — query a person's prior interviews from HydraDB.
+app.get(
+  "/api/stakeholder-history",
+  asyncHandler(async (req, res) => {
+    const name = String(req.query.name ?? "");
+    const email = req.query.email ? String(req.query.email) : null;
+    if (!name) {
+      res.status(400).json({ error: "name is required" });
+      return;
+    }
+    const interviews = await lookupHistory({ name, email });
+    res.json({
+      subTenantId: stakeholderKey(name, email),
+      count: interviews.length,
+      interviews,
+    });
+  }),
+);
+
+// (d) Autonomous write — embed a completed transcript into HydraDB.
+app.post(
+  "/api/stakeholder-interview",
+  asyncHandler(async (req, res) => {
+    const { name, email, role, projectId, customer, transcript, date } = req.body ?? {};
+    if (!name || !transcript) {
+      res.status(400).json({ error: "name and transcript are required" });
+      return;
+    }
+    const concerns = await extractConcerns(transcript);
+    const result = await writeInterview({
+      name,
+      email,
+      role: role ?? "stakeholder",
+      projectId: projectId ?? "unknown",
+      customer: customer ?? "unknown",
+      transcript,
+      concerns,
+      date,
+    });
+    res.json({ ok: true, ...result, concerns });
+  }),
+);
+
+// Memory Log panel feed — Server-Sent Events stream of every HydraDB op.
+app.get("/api/memory-log/stream", (req, res) => {
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders?.();
+
+  // Replay recent backlog so a late-opening panel isn't empty.
+  for (const e of recentMemoryLog()) res.write(`data: ${JSON.stringify(e)}\n\n`);
+
+  const onEvent = (e: MemoryLogEvent) => res.write(`data: ${JSON.stringify(e)}\n\n`);
+  memoryLog.on("event", onEvent);
+
+  const keepAlive = setInterval(() => res.write(": ping\n\n"), 15_000);
+  req.on("close", () => {
+    clearInterval(keepAlive);
+    memoryLog.off("event", onEvent);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Deal profiles (reads)
@@ -285,7 +468,7 @@ app.post(
 const CONFLICT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["conflicts"],
+  required: ["conflicts", "continuityCards"],
   properties: {
     conflicts: {
       type: "array",
@@ -301,6 +484,21 @@ const CONFLICT_SCHEMA = {
           quoteB: { type: "string" },
           severity: { type: "string", enum: ["high", "medium", "low"] },
           suggestedResolution: { type: "string" },
+        },
+      },
+    },
+    continuityCards: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["stakeholder", "priorQuote", "currentQuote", "status", "notes"],
+        properties: {
+          stakeholder: { type: "string" },
+          priorQuote: { type: "string" },
+          currentQuote: { type: "string" },
+          status: { type: "string", enum: ["resolved", "persisting", "escalated", "new"] },
+          notes: { type: "string" },
         },
       },
     },
@@ -338,7 +536,17 @@ For each conflict:
   conflict — not generic advice like "align stakeholders."
 
 Order conflicts by severity, highest first. If you genuinely find no contradictions, return an empty array —
-never invent one to have something to show.`;
+never invent one to have something to show.
+
+Additionally, some stakeholders are RETURNING — we have prior interview history with them from earlier
+projects, provided below the current transcripts. For each returning stakeholder, produce ONE continuityCards
+entry comparing a concern they raised before to where it stands now:
+- priorQuote: a VERBATIM line lifted from their prior history.
+- currentQuote: a VERBATIM line from their current transcript on the same theme (or "" if they did not touch it this time).
+- status: "resolved" (prior concern now addressed), "persisting" (still an open concern), "escalated" (worse or
+  more urgent than before), or "new" (a fresh concern not seen before).
+- notes: one concrete sentence for the PM about the trajectory.
+If there are no returning stakeholders, return an empty continuityCards array.`;
 
 app.post(
   "/api/conflict-map",
@@ -377,15 +585,29 @@ app.post(
       })
       .join("\n\n");
 
-    const result = await claudeJSON<{ conflicts: Conflict[] }>({
+    // Continuity-aware synthesis: load each stakeholder's prior history from HydraDB.
+    const priorByName = await Promise.all(
+      profile.stakeholders.map(async (s) => {
+        const chunks = await lookupHistory({ name: s.name, email: s.email });
+        return { name: s.name, role: s.role, history: formatPriorHistory(chunks), hasHistory: chunks.length > 0 };
+      }),
+    );
+    const returning = priorByName.filter((p) => p.hasHistory);
+    const priorHistoryBlock = returning.length
+      ? returning.map((p) => `### ${p.name} (${p.role}) — prior history\n${p.history}`).join("\n\n")
+      : "(no returning stakeholders)";
+
+    const result = await claudeJSON<{ conflicts: Conflict[]; continuityCards: ContinuityCard[] }>({
       system: CONFLICT_SYSTEM,
-      user: `Here are the transcripts:\n\n${transcriptBlock}`,
+      user:
+        `Here are the current transcripts:\n\n${transcriptBlock}\n\n` +
+        `Here is prior interview history for returning stakeholders:\n\n${priorHistoryBlock}`,
       schema: CONFLICT_SCHEMA,
       effort: "high",
       maxTokens: 4096,
     });
 
-    const row = store.insertConflictMap(dealProfileId, result.conflicts);
+    const row = store.insertConflictMap(dealProfileId, result.conflicts, result.continuityCards ?? []);
     res.json(row);
   }),
 );
@@ -620,17 +842,112 @@ app.post(
     }
     const { signed_url } = (await signedUrlRes.json()) as { signed_url: string };
 
+    // Autonomous recall: before the call, query HydraDB for this PERSON's prior history.
+    // Injected as dynamic variables so the ElevenLabs agent opens differently on a return call.
+    const { vars: dynamicVariables } = await buildCallDynamicVariables({
+      name: stakeholder.name,
+      email: stakeholder.email,
+      role: stakeholder.role,
+      projectName: projectNameFor(profile),
+      dealProfileId,
+      stakeholderId,
+    });
+
     const call = store.upsertCall(dealProfileId, stakeholderId, stakeholder.role, { status: "inProgress" });
 
     res.json({
       signedUrl: signed_url,
       callId: call.id,
-      dynamicVariables: {
-        stakeholder_id: stakeholderId,
-        stakeholder_name: stakeholder.name,
-        role: stakeholder.role,
-        deal_profile_id: dealProfileId,
-      },
+      dynamicVariables,
+    });
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Outbound phone call (ElevenLabs + Twilio). Real PSTN call to a phone number,
+// with the same HydraDB memory recall injected as dynamic variables so the agent
+// opens differently on a return call. The post-call webhook (below) handles the
+// autonomous write, matching on deal_profile_id + stakeholder_id.
+// ---------------------------------------------------------------------------
+
+app.post(
+  "/api/outbound-call",
+  asyncHandler(async (req, res) => {
+    const { dealProfileId, stakeholderId, toNumber, name: rawName, role: rawRole } = req.body ?? {};
+    if (!toNumber || typeof toNumber !== "string") {
+      res.status(400).json({ error: "toNumber is required (E.164 format, e.g. +14155551234)" });
+      return;
+    }
+
+    const agentId = process.env.ELEVENLABS_AGENT_ID;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const phoneNumberId = process.env.ELEVENLABS_PHONE_NUMBER_ID;
+    if (!agentId || !apiKey || !phoneNumberId) {
+      res.status(500).json({
+        error: "ELEVENLABS_AGENT_ID / ELEVENLABS_API_KEY / ELEVENLABS_PHONE_NUMBER_ID not configured",
+      });
+      return;
+    }
+
+    // Resolve the stakeholder (optional) so memory recall is keyed on the right person.
+    let stakeholder: DealProfile["stakeholders"][number] | null = null;
+    let profile: DealProfile | null = null;
+    if (dealProfileId && stakeholderId) {
+      profile = store.getDealProfile(dealProfileId);
+      stakeholder = profile?.stakeholders.find((s) => s.id === stakeholderId) ?? null;
+    }
+
+    const name: string = stakeholder?.name ?? (rawName || "there");
+    const role: string = stakeholder?.role ?? (rawRole || "stakeholder");
+    const email = stakeholder?.email ?? null;
+
+    // Autonomous recall before dialing — same complete variable set as browser calls.
+    const { vars: dynamicVariables } = await buildCallDynamicVariables({
+      name,
+      email,
+      role,
+      projectName: projectNameFor(profile),
+      dealProfileId: dealProfileId ?? "",
+      stakeholderId: stakeholderId ?? "",
+    });
+
+    const elRes = await fetch("https://api.elevenlabs.io/v1/convai/twilio/outbound-call", {
+      method: "POST",
+      headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent_id: agentId,
+        agent_phone_number_id: phoneNumberId,
+        to_number: toNumber,
+        conversation_initiation_client_data: { dynamic_variables: dynamicVariables },
+      }),
+    });
+
+    if (!elRes.ok) {
+      const text = await elRes.text();
+      throw new Error(`ElevenLabs outbound-call failed (${elRes.status}): ${text}`);
+    }
+    const data = (await elRes.json()) as Record<string, unknown>;
+
+    // If tied to a stakeholder, mark their call in progress so the UI/webhook line up.
+    let callId: string | null = null;
+    if (dealProfileId && stakeholderId && stakeholder) {
+      const call = store.upsertCall(dealProfileId, stakeholderId, stakeholder.role, { status: "inProgress" });
+      callId = call.id;
+    }
+
+    logMemory({
+      op: "INFO",
+      stakeholder: name,
+      detail: `Outbound call dialing ${toNumber} via Twilio (has_prior_history=${dynamicVariables.has_prior_history})`,
+    });
+
+    res.json({
+      ok: true,
+      callId,
+      conversationId: (data.conversation_id as string) ?? (data.conversationId as string) ?? null,
+      callSid: (data.callSid as string) ?? (data.call_sid as string) ?? null,
+      toNumber,
+      dynamicVariables,
     });
   }),
 );
@@ -664,9 +981,11 @@ app.post(
       return;
     }
 
-    const transcriptTurns = (data.transcript as Array<{ role: string; message: string }> | undefined) ?? [];
+    const transcriptTurns =
+      (data.transcript as Array<{ role: string; message: string | null }> | undefined) ?? [];
     const transcriptText = transcriptTurns
-      .map((t) => `${t.role === "agent" ? "Agent" : "Stakeholder"}: ${t.message}`)
+      .filter((t) => t && typeof t.message === "string" && t.message.trim().length > 0)
+      .map((t) => `${t.role === "agent" ? "Agent" : "Stakeholder"}: ${(t.message as string).trim()}`)
       .join("\n");
 
     const existing = store.findCall(dealProfileId, stakeholderId);
@@ -678,12 +997,126 @@ app.post(
 
     if (transcriptText) {
       generateDocForCall(existing.id).catch((e) => console.error("generate-doc trigger failed:", e));
+
+      // Autonomous write: persist this interview to HydraDB under the PERSON's key,
+      // so next time we call them (even on a different project) we remember it.
+      const profile = store.getDealProfile(dealProfileId);
+      const sh = profile?.stakeholders.find((s) => s.id === stakeholderId);
+      if (sh) {
+        (async () => {
+          const concerns = await extractConcerns(transcriptText);
+          await writeInterview({
+            name: sh.name,
+            email: sh.email,
+            role: sh.role,
+            projectId: dealProfileId,
+            customer: profile?.customer?.legalEntity ?? "unknown",
+            transcript: transcriptText,
+            concerns,
+          });
+        })().catch((e) => console.error("HydraDB interview write failed:", e));
+      }
     }
 
     res.json({ ok: true, callId: existing.id });
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Pull transcripts from the ElevenLabs Conversations API (no webhook needed).
+//
+// Lists recent conversations for the agent, fetches each transcript, matches it
+// to a stakeholder via the dynamic variables we injected at call time, stores it
+// on the in-memory call (so it shows on the website), and persists it to HydraDB
+// (so the analyzer's memory compounds). Idempotent: each conversation is only
+// written to HydraDB once per process, and the stable start-time keeps the
+// HydraDB record content-stable across re-syncs.
+// ---------------------------------------------------------------------------
+
+const syncedConversationIds = new Set<string>();
+
+app.post(
+  "/api/sync-calls",
+  asyncHandler(async (req, res) => {
+    const { dealProfileId } = req.body ?? {};
+    const agentId = process.env.ELEVENLABS_AGENT_ID;
+    if (!agentId) {
+      res.status(500).json({ error: "ELEVENLABS_AGENT_ID not configured" });
+      return;
+    }
+
+    const summaries = await listConversations(agentId, 50);
+
+    let scanned = 0;
+    let matched = 0;
+    let imported = 0;
+    const importedStakeholders: string[] = [];
+
+    for (const summary of summaries) {
+      scanned++;
+      // Only finished conversations have a usable transcript.
+      if (summary.status !== "done" && summary.status !== "processing") continue;
+
+      const detail = await getConversation(summary.conversation_id);
+      const dv = (detail.conversation_initiation_client_data?.dynamic_variables ?? {}) as Record<string, unknown>;
+      const dpId = String(dv.deal_profile_id ?? "");
+      const shId = String(dv.stakeholder_id ?? "");
+      if (!dpId || !shId) continue;
+      if (dealProfileId && dpId !== dealProfileId) continue;
+
+      const profile = store.getDealProfile(dpId);
+      const sh = profile?.stakeholders.find((s) => s.id === shId);
+      if (!profile || !sh) continue;
+
+      const transcriptText = turnsToTranscript(detail.transcript);
+      if (!transcriptText) continue;
+      matched++;
+
+      // Reflect on the website: update (or create) the in-memory call row.
+      const existing = store.findCall(dpId, shId);
+      if (existing) {
+        store.updateCall(existing.id, { status: "completed", transcript: transcriptText });
+      } else {
+        store.upsertCall(dpId, shId, sh.role, { status: "completed", transcript: transcriptText });
+      }
+
+      // Persist to HydraDB once per conversation (stable date = call start time).
+      if (!syncedConversationIds.has(summary.conversation_id)) {
+        syncedConversationIds.add(summary.conversation_id);
+        const startSecs = detail.metadata?.start_time_unix_secs ?? summary.start_time_unix_secs ?? Math.floor(Date.now() / 1000);
+        const dateIso = new Date(startSecs * 1000).toISOString();
+        try {
+          const concerns = await extractConcerns(transcriptText);
+          await writeInterview({
+            name: sh.name,
+            email: sh.email,
+            role: sh.role,
+            projectId: dpId,
+            customer: profile.customer?.legalEntity ?? "unknown",
+            transcript: transcriptText,
+            concerns,
+            date: dateIso,
+          });
+          imported++;
+          importedStakeholders.push(sh.name);
+        } catch (e) {
+          console.error(`Sync: HydraDB write failed for ${sh.name} (${summary.conversation_id}):`, e);
+          syncedConversationIds.delete(summary.conversation_id); // allow retry next sync
+        }
+      }
+    }
+
+    logMemory({
+      op: "INFO",
+      detail: `Synced ElevenLabs conversations: scanned=${scanned}, matched=${matched}, new stored in HydraDB=${imported}`,
+    });
+
+    res.json({ ok: true, scanned, matched, imported, importedStakeholders });
+  }),
+);
+
 app.listen(PORT, () => {
   console.log(`PreKick API listening on http://localhost:${PORT}`);
+  // Provision the HydraDB tenant in the background so the first call/recall is fast.
+  ensureTenant().catch((e) => console.error("HydraDB tenant provisioning failed:", e));
 });

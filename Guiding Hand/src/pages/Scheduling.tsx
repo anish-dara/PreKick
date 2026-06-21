@@ -8,6 +8,8 @@ import {
   Clock,
   CheckCircle2,
   Phone,
+  PhoneCall,
+  Loader2,
   Video,
   AlertTriangle,
   Sparkles,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
@@ -22,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { apiPost } from "@/lib/api";
 import { useDealProfile } from "@/hooks/useDealProfiles";
 import type { ActiveDealContext } from "@/hooks/useDealProfiles";
 import type { DealStakeholder } from "@/lib/types";
@@ -276,6 +280,130 @@ function BookingForm({
   );
 }
 
+function LivePhoneCallCard({
+  dealProfileId,
+  stakeholders,
+}: {
+  dealProfileId: string | null;
+  stakeholders: DealStakeholder[];
+}) {
+  const [stakeholderId, setStakeholderId] = useState<string>(stakeholders[0]?.id ?? "");
+  const [phone, setPhone] = useState<string>(stakeholders[0]?.phone ?? "");
+  const [calling, setCalling] = useState(false);
+
+  const stakeholder = stakeholders.find((s) => s.id === stakeholderId) ?? null;
+
+  const pickStakeholder = (s: DealStakeholder) => {
+    setStakeholderId(s.id);
+    if (s.phone) setPhone(s.phone);
+  };
+
+  const callNow = async () => {
+    const toNumber = phone.trim();
+    if (!/^\+[1-9]\d{6,15}$/.test(toNumber)) {
+      toast({ title: "Enter a valid phone number", description: "Use E.164 format, e.g. +14155551234", variant: "destructive" });
+      return;
+    }
+    setCalling(true);
+    try {
+      const data = await apiPost<{ ok: boolean; conversationId: string | null; dynamicVariables: { has_prior_history: string } }>(
+        "/api/outbound-call",
+        { dealProfileId, stakeholderId, toNumber },
+      );
+      const remembered = data.dynamicVariables?.has_prior_history === "true";
+      toast({
+        title: `Calling ${stakeholder?.name ?? toNumber}…`,
+        description: remembered
+          ? `Twilio is dialing ${toNumber}. The agent has prior history loaded — watch the Memory Log.`
+          : `Twilio is dialing ${toNumber}. No prior history for this person yet (first call).`,
+      });
+    } catch (err) {
+      toast({
+        title: "Couldn't start the call",
+        description: err instanceof Error ? err.message : "Outbound call failed",
+        variant: "destructive",
+      });
+    } finally {
+      setCalling(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+      <div className="px-6 py-5 border-b border-border flex items-start gap-4 flex-wrap bg-gradient-to-r from-primary/[0.08] to-transparent">
+        <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 text-primary">
+          <PhoneCall className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="eyebrow text-primary">Live · Phone</div>
+          <h2 className="font-display text-2xl tracking-tight mt-0.5">Call a phone now</h2>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+            Pick the person being called, enter a phone number, and PreKick dials out over the phone via ElevenLabs + Twilio.
+            The agent recalls this stakeholder's prior interviews from memory before it speaks.
+          </p>
+        </div>
+        <Badge variant="outline" className="gap-1.5">
+          <Phone className="h-3 w-3" />
+          Outbound
+        </Badge>
+      </div>
+
+      <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+        <div className="p-6 space-y-3">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Who are we calling?</Label>
+          <div className="grid gap-2">
+            {stakeholders.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => pickStakeholder(s)}
+                className={cn(
+                  "text-left rounded-lg border px-3 py-2.5 flex items-center gap-3 transition-all",
+                  stakeholderId === s.id ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/20 hover:bg-muted/40",
+                )}
+              >
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                  {initialsFor(s.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{s.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{ROLE_LABELS[s.role] ?? s.role}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div>
+            <Label htmlFor="outbound-phone" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              Phone number to dial
+            </Label>
+            <Input
+              id="outbound-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+14155551234"
+              className="mt-2"
+              inputMode="tel"
+            />
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              E.164 format (country code + number). Tip: enter your own phone and pick a returning stakeholder to demo the memory opener.
+            </p>
+          </div>
+          <Button
+            onClick={callNow}
+            disabled={calling || !stakeholder}
+            className="w-full gap-2 bg-gradient-brand hover:opacity-95 shadow-brand border-0"
+          >
+            {calling ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />}
+            {calling ? "Dialing…" : `Call ${stakeholder?.name ?? "now"} via phone`}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Scheduling() {
   const { dealProfileId } = useOutletContext<ActiveDealContext>();
   const { data: profile } = useDealProfile(dealProfileId);
@@ -304,6 +432,9 @@ export default function Scheduling() {
 
       {stakeholders.length > 0 && (
         <>
+          {/* LIVE — outbound phone call via ElevenLabs + Twilio */}
+          <LivePhoneCallCard dealProfileId={dealProfileId} stakeholders={stakeholders} />
+
           {/* PART 01 — AGENT */}
           <SectionCard section="agent">
             <BookingForm section="agent" slots={AGENT_SLOTS} topics={AGENT_TOPICS} stakeholders={stakeholders} />

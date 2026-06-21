@@ -89,10 +89,21 @@ export type Conflict = {
   suggestedResolution: string;
 };
 
+export type ContinuityStatus = "resolved" | "persisting" | "escalated" | "new";
+
+export type ContinuityCard = {
+  stakeholder: string;
+  priorQuote: string;
+  currentQuote: string;
+  status: ContinuityStatus;
+  notes: string;
+};
+
 export type ConflictMap = {
   id: string;
   dealProfileId: string;
   conflicts: Conflict[];
+  continuityCards: ContinuityCard[];
   createdAt: string;
 };
 

@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useDealProfiles } from "@/hooks/useDealProfiles";
 import type { ActiveDealContext } from "@/hooks/useDealProfiles";
+import MemoryLogPanel from "@/components/MemoryLogPanel";
 
 function projectDisplayName(profile: { customer?: { legalEntity?: string }; scope?: { summary?: string } }) {
   const entity = profile.customer?.legalEntity ?? "Untitled customer";
@@ -187,6 +188,8 @@ export default function AppLayout() {
         <main className="flex-1 overflow-y-auto">
           <Outlet context={outletContext} />
         </main>
+
+        <MemoryLogPanel />
       </div>
 
       {/* Rocketlane modal */}
