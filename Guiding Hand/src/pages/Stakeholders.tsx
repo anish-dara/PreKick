@@ -4,6 +4,7 @@ import { CheckCircle2, FileText, Loader2, PhoneCall, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiPost } from "@/lib/api";
@@ -49,6 +50,15 @@ function parseTranscript(transcript: string | null): TranscriptLine[] {
   return lines;
 }
 
+function StatCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+      <div className={cn("font-display text-3xl tracking-tight", accent && "text-primary")}>{value}</div>
+      <div className="eyebrow text-muted-foreground mt-1">{label}</div>
+    </div>
+  );
+}
+
 export default function Stakeholders() {
   const { dealProfileId } = useOutletContext<ActiveDealContext>();
   const { data: profile } = useDealProfile(dealProfileId);
@@ -66,6 +76,8 @@ export default function Stakeholders() {
     (calls ?? []).forEach((c) => map.set(c.stakeholderId, c));
     return map;
   }, [calls]);
+
+  const completed = stakeholders.filter((s) => callByStakeholder.get(s.id)?.status === "completed").length;
 
   const activeStakeholder = stakeholders.find((s) => s.id === activeStakeholderId) ?? null;
   const activeCall = activeStakeholderId ? callByStakeholder.get(activeStakeholderId) ?? null : null;
@@ -107,14 +119,13 @@ export default function Stakeholders() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12 space-y-8">
-      <header className="space-y-1">
-        <div className="text-xs uppercase tracking-wider text-primary font-semibold">Discovery</div>
-        <h1 className="text-3xl font-semibold tracking-tight">Stakeholders & Calls</h1>
-        <p className="text-muted-foreground text-sm">
-          PreKick reaches out to each named stakeholder and turns the conversation into structured paperwork.
-        </p>
-      </header>
+    <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-16 space-y-10">
+      <PageHeader
+        eyebrow="Discovery · 02"
+        title="Stakeholders"
+        italic="& calls."
+        description="PreKick reaches out to each named stakeholder and turns the conversation into structured paperwork."
+      />
 
       {!dealProfileId && (
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
@@ -123,74 +134,82 @@ export default function Stakeholders() {
       )}
 
       {dealProfileId && (
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="hidden md:grid grid-cols-[1.5fr_1fr_auto_auto] gap-4 px-6 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-            <div>Stakeholder</div>
-            <div>Role</div>
-            <div>Status</div>
-            <div className="text-right">Action</div>
+        <>
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard label="Stakeholders" value={stakeholders.length} />
+            <StatCard label="Calls completed" value={completed} accent />
+            <StatCard label="Scheduled" value={stakeholders.length - completed} />
           </div>
-          <ul className="divide-y divide-border">
-            {stakeholders.map((s) => {
-              const call = callByStakeholder.get(s.id);
-              const status: CallStatusDb = call?.status ?? "scheduled";
-              return (
-                <li
-                  key={s.id}
-                  className="grid md:grid-cols-[1.5fr_1fr_auto_auto] grid-cols-1 gap-3 md:gap-4 px-4 md:px-6 py-4 items-center"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                      {initialsFor(s.name)}
+
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="hidden md:grid grid-cols-[1.5fr_1fr_auto_auto] gap-4 px-6 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              <div>Stakeholder</div>
+              <div>Role</div>
+              <div>Status</div>
+              <div className="text-right">Action</div>
+            </div>
+            <ul className="divide-y divide-border">
+              {stakeholders.map((s) => {
+                const call = callByStakeholder.get(s.id);
+                const status: CallStatusDb = call?.status ?? "scheduled";
+                return (
+                  <li
+                    key={s.id}
+                    className="grid md:grid-cols-[1.5fr_1fr_auto_auto] grid-cols-1 gap-3 md:gap-4 px-4 md:px-6 py-4 items-center"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                        {initialsFor(s.name)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{s.name}</div>
+                        <div className="text-xs text-muted-foreground md:hidden">{ROLE_LABELS[s.role] ?? s.role}</div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{s.name}</div>
-                      <div className="text-xs text-muted-foreground md:hidden">{ROLE_LABELS[s.role] ?? s.role}</div>
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground hidden md:block">{ROLE_LABELS[s.role] ?? s.role}</div>
-                  <div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "font-medium",
-                        status === "completed"
-                          ? "bg-success/10 text-success border-success/30"
-                          : status === "inProgress"
-                          ? "bg-destructive/10 text-destructive border-destructive/30"
-                          : "bg-warning/10 text-warning border-warning/30"
-                      )}
-                    >
-                      {status === "completed" ? "● Completed" : status === "inProgress" ? "● Live" : "○ Scheduled"}
-                    </Badge>
-                  </div>
-                  <div className="md:text-right">
-                    {status === "completed" ? (
-                      <Button variant="outline" size="sm" onClick={() => viewTranscript(s)} className="gap-1.5">
-                        <FileText className="h-3.5 w-3.5" />
-                        View transcript
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => callNow(s)}
-                        disabled={connecting && activeStakeholderId === s.id}
-                        className="gap-1.5"
-                      >
-                        {connecting && activeStakeholderId === s.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <PhoneCall className="h-3.5 w-3.5" />
+                    <div className="text-sm text-muted-foreground hidden md:block">{ROLE_LABELS[s.role] ?? s.role}</div>
+                    <div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-medium",
+                          status === "completed"
+                            ? "bg-success/10 text-success border-success/30"
+                            : status === "inProgress"
+                            ? "bg-destructive/10 text-destructive border-destructive/30"
+                            : "bg-warning/10 text-warning border-warning/30"
                         )}
-                        Call now
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                      >
+                        {status === "completed" ? "● Completed" : status === "inProgress" ? "● Live" : "○ Scheduled"}
+                      </Badge>
+                    </div>
+                    <div className="md:text-right">
+                      {status === "completed" ? (
+                        <Button variant="outline" size="sm" onClick={() => viewTranscript(s)} className="gap-1.5">
+                          <FileText className="h-3.5 w-3.5" />
+                          View transcript
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => callNow(s)}
+                          disabled={connecting && activeStakeholderId === s.id}
+                          className="gap-1.5 bg-gradient-brand hover:opacity-95 shadow-brand border-0"
+                        >
+                          {connecting && activeStakeholderId === s.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <PhoneCall className="h-3.5 w-3.5" />
+                          )}
+                          Call now
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>
       )}
 
       <CallPanel
@@ -293,7 +312,7 @@ function CallPanel({
                   <div
                     key={i}
                     className={cn(
-                      "flex flex-col gap-1 max-w-[88%]",
+                      "animate-fade-up flex flex-col gap-1 max-w-[88%]",
                       l.speaker === "Agent" ? "items-start" : "items-end ml-auto"
                     )}
                   >

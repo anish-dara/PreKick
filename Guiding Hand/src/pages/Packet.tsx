@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Download, FileText, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiGet, apiPost } from "@/lib/api";
@@ -45,24 +46,25 @@ export default function Packet() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12 space-y-8">
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <div className="text-xs uppercase tracking-wider text-primary font-semibold">Deliverable</div>
-          <h1 className="text-3xl font-semibold tracking-tight">Kickoff Packet</h1>
-          <p className="text-muted-foreground text-sm">Everything the team needs to walk into the kickoff confident.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={generate} disabled={!dealProfileId || generating} variant="outline" className="gap-2">
-            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {generating ? "Synthesizing…" : packet ? "Regenerate" : "Generate packet"}
-          </Button>
-          <Button className="gap-2" disabled={!packet}>
-            <Download className="h-4 w-4" />
-            Export packet
-          </Button>
-        </div>
-      </header>
+    <div className="max-w-4xl mx-auto px-4 md:px-8 py-10 md:py-16 space-y-10">
+      <PageHeader
+        eyebrow="Deliverable · 04"
+        title="Kickoff"
+        italic="packet."
+        description="Everything the team needs to walk into the kickoff confident — synthesized from every call."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button onClick={generate} disabled={!dealProfileId || generating} variant="outline" className="gap-2">
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {generating ? "Synthesizing…" : packet ? "Regenerate" : "Generate packet"}
+            </Button>
+            <Button className="gap-2 bg-gradient-brand hover:opacity-95 shadow-brand border-0" disabled={!packet}>
+              <Download className="h-4 w-4" />
+              Export packet
+            </Button>
+          </div>
+        }
+      />
 
       {!dealProfileId && (
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
@@ -77,7 +79,7 @@ export default function Packet() {
       )}
 
       {packet && (
-        <article className="rounded-xl border border-border bg-card shadow-sm divide-y divide-border">
+        <article className="rounded-2xl border border-border bg-card shadow-elevated divide-y divide-border overflow-hidden">
           <Section title="Executive summary" eyebrow="01">
             <p className="text-sm leading-relaxed text-foreground/90">{packet.executiveSummary}</p>
           </Section>

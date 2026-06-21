@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppLayout from "@/components/AppLayout";
+import Landing from "./pages/Landing";
 import Projects from "./pages/Projects";
 import Stakeholders from "./pages/Stakeholders";
+import Scheduling from "./pages/Scheduling";
 import ConflictMap from "./pages/ConflictMap";
 import Packet from "./pages/Packet";
 import NotFound from "./pages/NotFound";
@@ -19,10 +21,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Navigate to="/projects" replace />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/stakeholders" element={<Stakeholders />} />
+            <Route path="/scheduling" element={<Scheduling />} />
             <Route path="/conflict-map" element={<ConflictMap />} />
             <Route path="/packet" element={<Packet />} />
           </Route>

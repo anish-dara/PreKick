@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, FileText, Loader2, Sparkles } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SOW_PLACEHOLDER } from "@/data/mock";
@@ -73,18 +74,20 @@ export default function Projects() {
   const revealed = !!profile && !isLoading;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12 space-y-8">
-      <header className="space-y-1">
-        <div className="text-xs uppercase tracking-wider text-primary font-semibold">Setup</div>
-        <h1 className="text-3xl font-semibold tracking-tight">New Project Intake</h1>
-        <p className="text-muted-foreground text-sm">
-          Drop the signed contract. PreKick extracts the deal profile and lines up the calls it needs to make.
-        </p>
-      </header>
+    <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-16 space-y-10">
+      <PageHeader
+        eyebrow="Setup · 01"
+        title="New project"
+        italic="intake."
+        description="Paste the signed contract. PreKick extracts the deal profile and lines up the discovery calls it needs to make."
+      />
 
-      <section className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-sm">
-        <label className="text-sm font-medium flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
+      <section className="rounded-2xl border border-border bg-card p-6 md:p-7 shadow-card relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <label className="text-sm font-semibold flex items-center gap-2">
+          <span className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <FileText className="h-3.5 w-3.5 text-primary" />
+          </span>
           Paste signed SOW / MSA
         </label>
         <Textarea
@@ -97,7 +100,7 @@ export default function Projects() {
           <span className="text-xs text-muted-foreground">
             Extraction runs live against Claude and creates a new deal profile.
           </span>
-          <Button onClick={extract} disabled={extracting} className="gap-2">
+          <Button onClick={extract} disabled={extracting} className="gap-2 bg-gradient-brand hover:opacity-95 shadow-brand border-0">
             {extracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {extracting ? "Extracting…" : "Extract Deal Profile"}
           </Button>
@@ -105,11 +108,12 @@ export default function Projects() {
       </section>
 
       {revealed && profile && (
-        <section className="animate-fade-up rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="px-5 md:px-6 py-4 border-b border-border flex items-center justify-between">
+        <section className="animate-fade-up rounded-2xl border border-border bg-card shadow-elevated overflow-hidden">
+          <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-gradient-to-r from-accent/40 to-transparent">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Deal Profile</h2>
-              <p className="text-xs text-muted-foreground">
+              <div className="eyebrow text-primary mb-1.5">Output · 02</div>
+              <h2 className="font-display text-2xl tracking-tight">Deal Profile</h2>
+              <p className="text-xs text-muted-foreground mt-1">
                 Extracted from SOW · {flaggedCount(profile)} field{flaggedCount(profile) === 1 ? "" : "s"} flagged for review
               </p>
             </div>

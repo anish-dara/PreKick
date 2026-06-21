@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Lightbulb, Loader2, Quote, ShieldAlert, Sparkles, Users2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiGet, apiPost } from "@/lib/api";
@@ -67,20 +68,19 @@ export default function ConflictMap() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12 space-y-8">
-      <header className="space-y-2 flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-primary font-semibold flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5" /> Centerpiece
-          </div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Cross-Stakeholder Conflict Map</h1>
-          <p className="text-muted-foreground">What your stakeholders disagree on — before kickoff.</p>
-        </div>
-        <Button onClick={generate} disabled={!dealProfileId || generating} className="gap-2">
-          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {generating ? "Synthesizing…" : conflicts.length > 0 ? "Regenerate" : "Generate Conflict Map"}
-        </Button>
-      </header>
+    <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-16 space-y-10">
+      <PageHeader
+        eyebrow="★ Centerpiece · 03"
+        title="Cross-stakeholder"
+        italic="conflict map."
+        description="What your stakeholders disagree on — surfaced before the kickoff call, not three weeks in."
+        actions={
+          <Button onClick={generate} disabled={!dealProfileId || generating} className="gap-2 bg-gradient-brand hover:opacity-95 shadow-brand border-0">
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {generating ? "Synthesizing…" : conflicts.length > 0 ? "Regenerate" : "Generate Conflict Map"}
+          </Button>
+        }
+      />
 
       {!dealProfileId && (
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
@@ -96,7 +96,7 @@ export default function ConflictMap() {
 
       {conflicts.length > 0 && (
         <>
-          <div className="rounded-xl border border-border bg-card shadow-sm p-5 grid grid-cols-3 divide-x divide-border">
+          <div className="rounded-2xl border border-border bg-card shadow-card p-6 grid grid-cols-3 divide-x divide-border">
             <Stat value={String(conflicts.length)} label="conflicts detected" />
             <Stat value={String(highSev)} label="high severity" accent />
             <Stat value={String(stakeholdersInvolved)} label="stakeholders" icon={<Users2 className="h-3.5 w-3.5" />} />
@@ -116,8 +116,8 @@ export default function ConflictMap() {
 function Stat({ value, label, accent, icon }: { value: string; label: string; accent?: boolean; icon?: React.ReactNode }) {
   return (
     <div className="px-2 md:px-4 first:pl-0 last:pr-0">
-      <div className={cn("text-2xl md:text-3xl font-semibold tracking-tight", accent && "text-destructive")}>{value}</div>
-      <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+      <div className={cn("font-display text-4xl md:text-5xl tracking-tight", accent && "text-destructive")}>{value}</div>
+      <div className="eyebrow text-muted-foreground mt-2 flex items-center gap-1.5">
         {icon}
         {label}
       </div>
