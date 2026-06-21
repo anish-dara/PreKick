@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PreKick — Diagrams</title>
+<style>
+  :root {
+    --bg: #F7F6F3;
+    --card: #FFFFFF;
+    --card-alt: #FAFAF8;
+    --t-dark: #111827;
+    --t-med: #4B5563;
+    --t-soft: #9CA3AF;
+    --rule: #E5E7EB;
+
+    --ind: #3730A3; --ind-l: #EEF2FF;
+    --pur: #5B21B6; --pur-l: #F5F3FF;
+    --grn: #065F46; --grn-l: #ECFDF5;
+    --amb: #78350F; --amb-l: #FFFBEB;
+    --blu: #1E40AF; --blu-l: #EFF6FF;
+    --slt: #1E293B; --slt-l: #F1F5F9;
+    --gry: #374151; --gry-l: #F9FAFB;
+    --pnk: #9D174D; --pnk-l: #FDF2F8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Inter', 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--t-dark);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── Page wrapper ── */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px 60px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .page:last-child { border-bottom: none; }
+
+  /* ── Header ── */
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--t-dark);
+    letter-spacing: -0.3px;
+  }
+  .page-header h1 span { font-weight: 400; color: var(--t-med); }
+  .page-header p {
+    font-size: 11.5px;
+    color: var(--t-soft);
+    margin-top: 4px;
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 16px 0;
+  }
+
+  /* ── Section labels ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--t-soft);
+    margin-bottom: 8px;
+    margin-top: 20px;
+  }
+
+  /* ── Cards ── */
+  .card-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card-grid.cols-2-1 { grid-template-columns: 1.65fr 1fr; }
+  .card-grid.cols-1 { grid-template-columns: 1fr; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    padding: 12px 14px 12px 17px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 7px 0 0 7px;
+    background: var(--accent, var(--rule));
+  }
+  .card.muted { background: var(--card-alt); opacity: 0.7; }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent, var(--t-med));
+  }
+  .badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border: 1px solid var(--accent, var(--rule));
+    color: var(--accent, var(--t-soft));
+    background: var(--tint, var(--card-alt));
+  }
+  .card-body {
+    font-size: 11px;
+    color: var(--t-med);
+    line-height: 1.6;
+  }
+  .card.muted .card-body { color: var(--t-soft); }
+
+  /* ── Data model box ── */
+  .data-model {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    border-left: 3px solid var(--grn);
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+  .dm-col { padding: 14px 16px; }
+  .dm-divider { background: var(--rule); }
+  .dm-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .dm-fields {
+    font-size: 10.5px;
+    color: var(--t-med);
+    line-height: 1.7;
+  }
+  .dm-note {
+    font-size: 10px;
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  /* ── Routes ── */
+  .routes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .route {
+    display: flex;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    font-size: 10.5px;
+    font-family: 'SFMono-Regular', 'Fira Code', monospace;
+  }
+  .route-method {
+    padding: 4px 8px;
+    font-weight: 700;
+    color: white;
+    font-size: 9.5px;
+  }
+  .route-path {
+    padding: 4px 9px;
+    color: var(--t-med);
+    background: var(--tint);
+  }
+
+  /* ── Flows ── */
+  .flow { margin-bottom: 14px; }
+  .flow-label {
+    font-size: 10.5px;
+    font-style: italic;
+    color: var(--t-soft);
+    margin-bottom: 7px;
+  }
+  .flow-nodes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .flow-node {
+    font-size: 10.5px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--accent, var(--rule));
+    color: var(--accent, var(--t-med));
+    background: var(--tint, var(--card-alt));
+    white-space: nowrap;
+  }
+  .flow-arrow {
+    color: var(--t-soft);
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  /* ── Timeline phases ── */
+  .timeline { position: relative; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 24px;
+    bottom: 24px;
+    width: 1px;
+    background: var(--rule);
+  }
+  .phase {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .phase-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+    margin-top: 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .phase-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    padding: 12px 14px 12px 17px;
+    position: relative;
+    overflow: hidden;
+  }
+  .phase-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .phase-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .hydra-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--grn-l);
+    color: var(--grn);
+    border: 1px solid var(--grn);
+  }
+  .phase-steps { display: flex; flex-direction: column; gap: 5px; }
+  .step {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: 11px;
+  }
+  .actor-tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: white;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.6;
+  }
+  .step-text { color: var(--t-med); line-height: 1.5; }
+
+  /* ── Memory log ── */
+  .memory-log {
+    background: #F0FDF4;
+    border: 1px solid var(--grn);
+    border-left: 3px solid var(--grn);
+    border-radius: 7px;
+    padding: 12px 16px;
+    font-family: 'SFMono-Regular', 'Fira Code', monospace;
+  }
+  .log-entry {
+    display: flex;
+    gap: 10px;
+    font-size: 10.5px;
+    margin-bottom: 5px;
+    line-height: 1.4;
+  }
+  .log-entry:last-child { margin-bottom: 0; }
+  .log-ts { color: var(--t-soft); flex-shrink: 0; }
+  .log-type { font-weight: 700; flex-shrink: 0; }
+  .log-type.read { color: var(--blu); }
+  .log-type.write { color: var(--grn); }
+  .log-msg { color: var(--t-med); }
+
+  /* ── Build timeline ── */
+  .build-bar { display: flex; border-radius: 5px; overflow: hidden; height: 28px; }
+  .build-seg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    overflow: hidden;
+    line-height: 1.3;
+  }
+  .build-seg span { font-weight: 400; opacity: 0.8; font-size: 8px; }
+  .build-timeline-labels {
+    display: flex;
+    margin-top: 5px;
+    font-size: 9px;
+    color: var(--t-soft);
+  }
+  .protect-note {
+    font-size: 10.5px;
+    font-style: italic;
+    color: var(--t-soft);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--t-med); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── Page footer ── */
+  .page-footer {
+    margin-top: 32px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-size: 10px;
+    color: var(--t-soft);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     PAGE 1 — ARCHITECTURE
+════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <h1>PreKick <span>— System Architecture</span></h1>
+    <p>Stack overview &nbsp;·&nbsp; data model &nbsp;·&nbsp; API routes &nbsp;·&nbsp; integration flows</p>
+  </div>
+  <hr class="divider">
+
+  <!-- FRONTEND -->
+  <div class="section-label">Frontend</div>
+  <div class="card-grid cols-1">
+    <div class="card" style="--accent: var(--ind); --tint: var(--ind-l)">
+      <div class="card-top">
+        <div class="card-title">Lovable (React Frontend)</div>
+        <div class="badge">LOCKED</div>
+      </div>
+      <div class="card-body">
+        Screens: Project Setup &nbsp;·&nbsp; Stakeholders &amp; Calls &nbsp;·&nbsp; Live Call View &nbsp;·&nbsp; Conflict Map &nbsp;·&nbsp; Stakeholder History &nbsp;·&nbsp; Kickoff Packet &nbsp;·&nbsp; Rocketlane Export (mocked)<br>
+        Do not modify existing screens. Add only: <strong>Memory Log panel</strong> (streaming footer strip) and <strong>"Continuing from last time"</strong> continuity card binding.
+      </div>
+    </div>
+  </div>
+
+  <!-- VOICE + MEMORY -->
+  <div class="section-label">Voice &nbsp;·&nbsp; Memory</div>
+  <div class="card-grid cols-2-1">
+    <div class="card" style="--accent: var(--pur); --tint: var(--pur-l)">
+      <div class="card-top">
+        <div class="card-title">ElevenLabs Conversational AI</div>
+        <div class="badge">VOICE</div>
+      </div>
+      <div class="card-body">
+        Outbound calls to each stakeholder &nbsp;·&nbsp; In-call LLM: <strong>Gemini 2.5 Flash</strong> (low-latency reasoning)<br>
+        Dynamic variable injection: <code>prior_history</code> injected before every call — opening line references prior concern without any human prompt.<br>
+        Webhook fires <code>POST /api/call-webhook</code> on call completion.
+      </div>
+    </div>
+    <div class="card" style="--accent: var(--grn); --tint: var(--grn-l)">
+      <div class="card-top">
+        <div class="card-title">HydraDB</div>
+        <div class="badge">THE WEDGE</div>
+      </div>
+      <div class="card-body">
+        Primary memory layer.<br>
+        Per-stakeholder persistent records.<br>
+        Key: <code>stakeholder_id</code>, not <code>project_id</code>.<br>
+        Embedding-based retrieval.<br>
+        Append-on-completion writes.
+      </div>
+    </div>
+  </div>
+
+  <!-- BACKEND + REASONING -->
+  <div class="section-label">Backend &nbsp;·&nbsp; Reasoning</div>
+  <div class="card-grid cols-2-1">
+    <div class="card" style="--accent: var(--blu); --tint: var(--blu-l)">
+      <div class="card-top">
+        <div class="card-title">Backend API &nbsp;(Vercel-deployed)</div>
+        <div class="badge">EXTENDED</div>
+      </div>
+      <div class="card-body">
+        Existing: SOW extraction &nbsp;·&nbsp; voice-call processing &nbsp;·&nbsp; conflict synthesis<br>
+        New (build day): stakeholder lookup &nbsp;·&nbsp; stakeholder write &nbsp;·&nbsp; Memory Log SSE stream<br>
+        Webhook handler: transcript → Claude concern extraction → HydraDB write. Public URL consumed by ElevenLabs.
+      </div>
+    </div>
+    <div class="card" style="--accent: var(--amb); --tint: var(--amb-l)">
+      <div class="card-top">
+        <div class="card-title">Claude (Anthropic API)</div>
+        <div class="badge">REASONING</div>
+      </div>
+      <div class="card-body">
+        SOW extraction<br>
+        Next-question generation (memory-informed)<br>
+        Concern extraction from transcripts<br>
+        Continuity-aware conflict synthesis<br>
+        "Continuing from last time" classification
+      </div>
+    </div>
+  </div>
+
+  <!-- INFRA -->
+  <div class="section-label">Infrastructure &nbsp;·&nbsp; Mocked</div>
+  <div class="card-grid cols-3">
+    <div class="card" style="--accent: var(--slt); --tint: var(--slt-l)">
+      <div class="card-top">
+        <div class="card-title">Nebius</div>
+        <div class="badge">EMBEDDINGS</div>
+      </div>
+      <div class="card-body">
+        Hosts embedding model for HydraDB writes. Substitute any embedding library if needed on build day.
+      </div>
+    </div>
+    <div class="card" style="--accent: var(--blu); --tint: var(--blu-l)">
+      <div class="card-top">
+        <div class="card-title">Vercel</div>
+        <div class="badge">DEPLOY</div>
+      </div>
+      <div class="card-body">
+        Hosts backend API. Public URL for ElevenLabs webhook. Demo-accessible endpoint.
+      </div>
+    </div>
+    <div class="card muted" style="--accent: var(--gry); --tint: var(--gry-l)">
+      <div class="card-top">
+        <div class="card-title">Thine (PM Layer)</div>
+        <div class="badge">MOCKED</div>
+      </div>
+      <div class="card-body">
+        Personal coaching cards on Stakeholder History view. UI-only placeholder. Not wired. Mention in pitch only.
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA MODEL -->
+  <div class="section-label">Data Model</div>
+  <div class="data-model">
+    <div class="dm-col">
+      <div class="dm-label" style="color: var(--grn)">NEW — stakeholder</div>
+      <div class="dm-fields">id &nbsp;·&nbsp; name &nbsp;·&nbsp; role &nbsp;·&nbsp; email &nbsp;·&nbsp; phone &nbsp;·&nbsp; customer &nbsp;·&nbsp; hydradb_record_id</div>
+      <br>
+      <div class="dm-label" style="color: var(--grn)">NEW — stakeholder_interview</div>
+      <div class="dm-fields">stakeholder_id &nbsp;·&nbsp; project_id &nbsp;·&nbsp; date &nbsp;·&nbsp; transcript &nbsp;·&nbsp; extracted_concerns &nbsp;·&nbsp; embedding &nbsp;·&nbsp; status_per_concern</div>
+      <div class="dm-note" style="color: var(--grn)">Memory keyed on stakeholder_id — not project_id. This is the wedge.</div>
+    </div>
+    <div class="dm-divider"></div>
+    <div class="dm-col">
+      <div class="dm-label" style="color: var(--t-soft)">EXISTING (unchanged)</div>
+      <div class="dm-fields" style="color: var(--t-soft)">
+        deal_profile<br>
+        stakeholder_call<br>
+        generated_document<br>
+        conflict_map<br>
+        kickoff_packet
+      </div>
+    </div>
+  </div>
+
+  <!-- API ROUTES -->
+  <div class="section-label">API Routes (Build Day)</div>
+  <div class="routes">
+    <div class="route">
+      <div class="route-method" style="background: var(--grn)">GET</div>
+      <div class="route-path" style="--tint: var(--grn-l); background: var(--grn-l)">/api/stakeholder-history</div>
+    </div>
+    <div class="route">
+      <div class="route-method" style="background: var(--amb)">POST</div>
+      <div class="route-path" style="background: var(--amb-l)">/api/next-question</div>
+    </div>
+    <div class="route">
+      <div class="route-method" style="background: var(--amb)">POST</div>
+      <div class="route-path" style="background: var(--amb-l)">/api/conflict-map</div>
+    </div>
+    <div class="route">
+      <div class="route-method" style="background: var(--grn)">POST</div>
+      <div class="route-path" style="background: var(--grn-l)">/api/stakeholder-interview</div>
+    </div>
+    <div class="route">
+      <div class="route-method" style="background: var(--pur)">POST</div>
+      <div class="route-path" style="background: var(--pur-l)">/api/call-webhook</div>
+    </div>
+    <div class="route">
+      <div class="route-method" style="background: var(--blu)">SSE</div>
+      <div class="route-path" style="background: var(--blu-l)">/api/memory-log-stream</div>
+    </div>
+  </div>
+
+  <!-- INTEGRATION FLOWS -->
+  <div class="section-label">Key Integration Flows</div>
+
+  <div class="flow">
+    <div class="flow-label">Pre-call — autonomous recall (no human prompt)</div>
+    <div class="flow-nodes">
+      <div class="flow-node" style="--accent: var(--ind); --tint: var(--ind-l)">Frontend</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--blu); --tint: var(--blu-l)">Backend</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--grn); --tint: var(--grn-l)">HydraDB READ</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--pur); --tint: var(--pur-l)">ElevenLabs + prior_history injected</div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="flow-label">Post-call — autonomous write (no human prompt)</div>
+    <div class="flow-nodes">
+      <div class="flow-node" style="--accent: var(--pur); --tint: var(--pur-l)">ElevenLabs webhook</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--blu); --tint: var(--blu-l)">Backend</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--amb); --tint: var(--amb-l)">Claude (extract)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--slt); --tint: var(--slt-l)">Nebius (embed)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--grn); --tint: var(--grn-l)">HydraDB WRITE</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--ind); --tint: var(--ind-l)">Memory Log SSE</div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="flow-label">Synthesis — conflict map</div>
+    <div class="flow-nodes">
+      <div class="flow-node" style="--accent: var(--blu); --tint: var(--blu-l)">Backend /conflict-map</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--grn); --tint: var(--grn-l)">HydraDB READ (all stakeholders)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--amb); --tint: var(--amb-l)">Claude (synthesize)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--accent: var(--ind); --tint: var(--ind-l)">Conflict Map + Continuity Cards</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>PreKick &nbsp;·&nbsp; AI Valley "Agents You Love" Hackathon &nbsp;·&nbsp; Track 10 — Open Memory</span>
+    <span>1 of 2</span>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     PAGE 2 — PRODUCT LIFECYCLE
+════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <h1>PreKick <span>— Product Lifecycle</span></h1>
+    <p>End-to-end flow &nbsp;·&nbsp; from deal close to persistent stakeholder memory</p>
+  </div>
+  <hr class="divider">
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background: var(--blu)"></div>PM action</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--grn)"></div>Autonomous memory op</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--pur)"></div>Voice agent</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--amb)"></div>Reasoning — Claude</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--ind)"></div>Frontend output</div>
+  </div>
+
+  <div class="timeline">
+
+    <!-- Phase 01 -->
+    <div class="phase">
+      <div class="phase-circle" style="background: var(--blu)">01</div>
+      <div class="phase-card" style="--accent: var(--blu)">
+        <div class="phase-header">
+          <div class="phase-label">DEAL CLOSE — PROJECT SETUP</div>
+        </div>
+        <div class="phase-steps">
+          <div class="step">
+            <div class="actor-tag" style="background: var(--blu)">PM</div>
+            <div class="step-text">Deal closes in CRM. PM creates project in PreKick.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--amb)">Claude</div>
+            <div class="step-text">Upload SOW — Claude extracts scope, timeline, and deliverables via <code>POST /api/extract</code>.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--blu)">PM</div>
+            <div class="step-text">Add stakeholders: Sponsor, IT Lead, Project Lead, Finance.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 02 -->
+    <div class="phase">
+      <div class="phase-circle" style="background: var(--grn)">02</div>
+      <div class="phase-card" style="--accent: var(--grn)">
+        <div class="phase-header">
+          <div class="phase-label">AUTONOMOUS RECALL — no human prompt</div>
+          <div class="hydra-badge">HYDRA READ</div>
+        </div>
+        <div class="phase-steps">
+          <div class="step">
+            <div class="actor-tag" style="background: var(--blu)">Backend</div>
+            <div class="step-text"><code>GET /api/stakeholder-history</code> fires automatically for each stakeholder on project setup.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--grn)">HydraDB</div>
+            <div class="step-text">Embedding similarity search retrieves prior records for each person.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--grn)">HydraDB</div>
+            <div class="step-text">1 prior interview found for Tom Becker — full transcript and extracted concerns returned.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--ind)">UI</div>
+            <div class="step-text"><code>[HYDRA READ] stakeholder=Tom Becker → 1 prior interview retrieved</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 03 -->
+    <div class="phase">
+      <div class="phase-circle" style="background: var(--pur)">03</div>
+      <div class="phase-card" style="--accent: var(--pur)">
+        <div class="phase-header">
+          <div class="phase-label">MEMORY-INFORMED VOICE CALL</div>
+        </div>
+        <div class="phase-steps">
+          <div class="step">
+            <div class="actor-tag" style="background: var(--amb)">Backend + Claude</div>
+            <div class="step-text"><code>POST /api/next-question</code> with <code>prior_history</code> — ElevenLabs dynamic variables set before dial.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--pur)">ElevenLabs</div>
+            <div class="step-text">Agent dials stakeholder. Judge receives live phone call.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--pur)">Agent</div>
+            <div class="step-text"><em>"Hi Tom, last time we spoke the Salesforce integration was your biggest concern — where does that stand now?"</em></div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--pur)">ElevenLabs + Claude</div>
+            <div class="step-text">Gemini 2.5 Flash handles in-call latency. Claude generates memory-informed follow-up questions.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 04 -->
+    <div class="phase">
+      <div class="phase-circle" style="background: var(--grn)">04</div>
+      <div class="phase-card" style="--accent: var(--grn)">
+        <div class="phase-header">
+          <div class="phase-label">AUTONOMOUS WRITE — no human prompt</div>
+          <div class="hydra-badge">HYDRA WRITE</div>
+        </div>
+        <div class="phase-steps">
+          <div class="step">
+            <div class="actor-tag" style="background: var(--pur)">ElevenLabs</div>
+            <div class="step-text">Call ends. Webhook posts full transcript to <code>POST /api/call-webhook</code>.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--amb)">Claude</div>
+            <div class="step-text">Extracts concerns: Salesforce integration, timeline risk, scope consultation gap.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--slt)">Nebius</div>
+            <div class="step-text">Vector embedding generated for future similarity retrieval.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--grn)">HydraDB</div>
+            <div class="step-text">New <code>stakeholder_interview</code> record appended to Tom's persistent record. <code>[HYDRA WRITE] stakeholder=Tom Becker, interview_id=ib_9f3a2c1d...</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 05 -->
+    <div class="phase">
+      <div class="phase-circle" style="background: var(--amb)">05</div>
+      <div class="phase-card" style="--accent: var(--amb)">
+        <div class="phase-header">
+          <div class="phase-label">CONTINUITY-AWARE SYNTHESIS</div>
+          <div class="hydra-badge">HYDRA READ</div>
+        </div>
+        <div class="phase-steps">
+          <div class="step">
+            <div class="actor-tag" style="background: var(--blu)">Backend</div>
+            <div class="step-text"><code>POST /api/conflict-map</code> loads all transcripts + each stakeholder's HydraDB history.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--amb)">Claude</div>
+            <div class="step-text">Cross-stakeholder conflict map generated + "Continuing from last time" objects per returning stakeholder.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--ind)">Frontend</div>
+            <div class="step-text">Continuity cards rendered: <code>prior_quote · current_quote · status: persisting | resolved | escalated | new</code></div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--ind)">Frontend</div>
+            <div class="step-text">Tom's card — Salesforce integration: status=<strong>ongoing</strong>. Prior: "nightmare." Current: "still unresolved."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 06 -->
+    <div class="phase">
+      <div class="phase-circle" style="background: var(--ind)">06</div>
+      <div class="phase-card" style="--accent: var(--ind)">
+        <div class="phase-header">
+          <div class="phase-label">OUTPUT — DELIVERY</div>
+        </div>
+        <div class="phase-steps">
+          <div class="step">
+            <div class="actor-tag" style="background: var(--amb)">Claude</div>
+            <div class="step-text">Kickoff packet generated with structured conflict summary.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--ind)">Frontend</div>
+            <div class="step-text">Stakeholder History view: full interview history per person + Thine coaching cards (mocked).</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--ind)">Frontend</div>
+            <div class="step-text">Rocketlane export modal (mocked) — simulates PM tool handoff.</div>
+          </div>
+          <div class="step">
+            <div class="actor-tag" style="background: var(--grn)">HydraDB</div>
+            <div class="step-text">Tom's record now has 2 interviews. Next project auto-recalls both automatically.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+  <!-- MEMORY LOG PANEL -->
+  <div class="section-label">Memory Log Panel — live HydraDB events visible to judges</div>
+  <div class="memory-log">
+    <div class="log-entry">
+      <span class="log-ts">00:00:12</span>
+      <span class="log-type read">[READ]</span>
+      <span class="log-msg">stakeholder=Tom Becker &nbsp;→&nbsp; 1 prior interview retrieved</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-ts">00:00:13</span>
+      <span class="log-type read">[READ]</span>
+      <span class="log-msg">stakeholder=Sarah Park &nbsp;→&nbsp; 0 prior interviews</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-ts">00:00:14</span>
+      <span class="log-type read">[READ]</span>
+      <span class="log-msg">stakeholder=James Liu &nbsp;→&nbsp; 0 prior interviews</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-ts">00:14:37</span>
+      <span class="log-type write">[WRITE]</span>
+      <span class="log-msg">stakeholder=Tom Becker, interview_id=ib_9f3a2c1d...</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-ts">00:14:41</span>
+      <span class="log-type read">[READ]</span>
+      <span class="log-msg">conflict-map synthesis: loading 3 stakeholder histories</span>
+    </div>
+  </div>
+
+  <!-- BUILD TIMELINE -->
+  <div class="section-label" style="margin-top: 24px">Build Day — 8-Hour Timeline</div>
+  <div class="build-bar">
+    <div class="build-seg" style="flex: 0.5; background: var(--gry)">Setup<span>0:00</span></div>
+    <div class="build-seg" style="flex: 1; background: var(--blu)">HydraDB<span>0:30</span></div>
+    <div class="build-seg" style="flex: 1; background: var(--grn)">Pre-seed Tom<span>1:30</span></div>
+    <div class="build-seg" style="flex: 1; background: var(--pur)">Voice Agent<span>2:30</span></div>
+    <div class="build-seg" style="flex: 1.5; background: var(--amb)">Synthesis<span>3:30</span></div>
+    <div class="build-seg" style="flex: 0.75; background: var(--ind)">Memory Log<span>5:00</span></div>
+    <div class="build-seg" style="flex: 0.75; background: var(--grn)">Write Loop<span>5:45</span></div>
+    <div class="build-seg" style="flex: 1; background: var(--pnk)">E2E Test<span>6:30</span></div>
+    <div class="build-seg" style="flex: 0.5; background: var(--gry)">Submit<span>7:30</span></div>
+  </div>
+  <div class="protect-note">
+    Protect the wedge: (a) memory-informed live call &nbsp;·&nbsp; (b) Memory Log panel &mdash; those two prove all three brief requirements.
+  </div>
+
+  <div class="page-footer">
+    <span>PreKick &nbsp;·&nbsp; AI Valley "Agents You Love" Hackathon &nbsp;·&nbsp; Track 10 — Open Memory</span>
+    <span>2 of 2</span>
+  </div>
+</div>
+
+</body>
+</html>
