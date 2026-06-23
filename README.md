@@ -22,6 +22,3 @@ All files reflect the latest decisions: voice-first product, hybrid build (Lovab
    - Build the conflict map before the voice wiring
 4. Mock the rest, rehearse the demo
 
-## Still to do (the demo depends on it)
-
-The sample SOW and the two conflicting stakeholder transcripts (Anya the sponsor, Tom the IT lead) are referenced everywhere but not yet written. The conflict map lives or dies on these. Generate them before build day.
