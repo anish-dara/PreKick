@@ -20,5 +20,5 @@ All files reflect the latest decisions: voice-first product, hybrid build (Lovab
 2. Export to GitHub early
 3. Cursor/Claude Code → DB + backend + integrations (use CURSOR_INSTRUCTIONS.md)
    - Build the conflict map before the voice wiring
-4. Mock the rest, rehearse the demo
+
 
