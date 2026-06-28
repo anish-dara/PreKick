@@ -11,7 +11,7 @@ All files reflect the latest decisions: voice-first product, hybrid build (Lovab
 
 - **LOVABLE_PROMPT.md** — paste-ready prompt for Lovable. Frontend only, mock data, all four screens spec'd. This is step one of the build.
 
-- **CURSOR_INSTRUCTIONS.md** — full instructions for the Cursor/Claude Code phase: Supabase schema, backend endpoints, the three Claude prompts, seed data, build order, demo flow. Point Claude Code at this after exporting from Lovable.
+- **CURSOR_INSTRUCTIONS.md** — full instructions for the Cursor/Claude Code phase: backend endpoints, the three Claude prompts, seed data, build order, demo flow. Point Claude Code at this after exporting from Lovable.
 
 ## Build order at a glance
 
