@@ -1,7 +1,6 @@
 # PreKick — Hackathon File Index
 
-Pre-Kickoff Voice Agent · Rocketlane PS/Onboarding/Implementation Hackathon (June 18).
-
+Pre-Kickoff Voice Agent
 All files reflect the latest decisions: voice-first product, hybrid build (Lovable frontend → export → Cursor/Claude Code for DB + backend + integrations), conflict map built before voice.
 
 ## Files
